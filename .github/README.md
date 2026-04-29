@@ -11,10 +11,11 @@ The guiding principle is **minimal CI**: the pipeline enforces only what blocks 
 Triggered on every pull request and on every push to `main`. The job runs on `ubuntu-latest` with Temurin JDK 17 and a Maven cache, and performs:
 
 1. **Build & test** — `./mvnw -B clean verify`. Fails the pipeline on any compile error or test failure.
-2. **Dependency vulnerability scan** — OWASP Dependency-Check Maven plugin (`org.owasp:dependency-check-maven:check`) configured to fail the build on CVSS ≥ 7. The NVD database is cached between runs (`~/.m2/repository/org/owasp/dependency-check-data`) so the multi-minute initial download happens only once.
+2. **Dependency review** — `actions/dependency-review-action@v4`, fails the PR if any new dependency introduces a vulnerability of severity `high` or above. Runs **only on pull requests** (the action diffs base vs head, which has no meaning on a direct push). Backed by the GitHub Advisory Database — no NVD API key, no rate limiting, completes in seconds.
 
 **What is intentionally NOT in CI:**
 - **SonarCloud / SonarQube** — excluded to keep the pipeline fast and free of external account dependencies. Static analysis is performed locally via **SonarLint** in IntelliJ.
+- **OWASP Dependency-Check Maven plugin** — initially adopted, then dropped: without an NVD API key the NVD download is rate-limited (HTTP 429) and the job hangs for 50+ minutes before failing. The GitHub-native action replaces it cleanly.
 - **Coverage upload, release automation, deploy steps** — out of scope for this assessment.
 
 The rationale and trade-offs are documented in `ai-assisted/pre-analysis.md` §2.5.
@@ -30,7 +31,7 @@ GitHub Dependabot is enabled with two ecosystems:
 
 Both are configured to use the `chore` Conventional Commits prefix on the auto-generated PRs, so they fit the project's commit convention without manual rewriting.
 
-Dependabot complements the OWASP scan: OWASP enforces (blocks merges with high-severity CVEs), Dependabot informs (proactively opens PRs for vulnerable or outdated dependencies). The redundancy is intentional.
+Dependabot complements the dependency-review step: the review action **enforces on PR** (blocks merges that *introduce* a high-severity vulnerability), Dependabot **informs continuously** (opens PRs to fix or update vulnerable and outdated dependencies on the existing baseline). The two roles are different and intentionally redundant — one defends the PR boundary, the other patrols the main branch.
 
 ---
 

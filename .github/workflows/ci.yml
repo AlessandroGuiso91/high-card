@@ -5,9 +5,12 @@ on:
   push:
     branches: [main]
 
+permissions:
+  contents: read
+
 jobs:
   build:
-    name: Build, test & dependency check
+    name: Build & test
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -22,12 +25,8 @@ jobs:
       - name: Build and run tests
         run: ./mvnw -B clean verify
 
-      - name: Cache OWASP NVD database
-        uses: actions/cache@v4
+      - name: Dependency review
+        if: github.event_name == 'pull_request'
+        uses: actions/dependency-review-action@v4
         with:
-          path: ~/.m2/repository/org/owasp/dependency-check-data
-          key: nvd-${{ runner.os }}
-          restore-keys: nvd-
-
-      - name: Dependency vulnerability check
-        run: ./mvnw -B org.owasp:dependency-check-maven:check -DfailBuildOnCVSS=7 -DskipTestScope=true
+          fail-on-severity: high

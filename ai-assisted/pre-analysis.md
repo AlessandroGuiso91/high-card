@@ -55,7 +55,7 @@ The split between CI and local is intentional: CI enforces what blocks integrati
 
 **In CI (GitHub Actions, on every PR and push to `main`):**
 - Build + test (`./mvnw -B clean verify`)
-- **OWASP Dependency-Check Maven plugin**, fails the build on CVSS ≥ 7. NVD database cached between runs to avoid the multi-minute initial download.
+- **`actions/dependency-review-action@v4`** on pull requests only, fails the PR if a new dependency introduces a vulnerability of severity `high` or above. Backed by the GitHub Advisory Database — no NVD API key, no rate limiting, completes in seconds. Replaces the originally-planned OWASP Dependency-Check Maven plugin (see §3 for why).
 - **GitHub Dependabot** enabled at repo level: weekly scans, automatic PRs for vulnerable or outdated Maven and GitHub Actions dependencies. Zero CI cost (managed by GitHub).
 
 **Explicitly NOT in CI:**
@@ -78,5 +78,7 @@ This section is filled in iteratively. Each entry records a specific point where
   Crucially, the manual inspection that disproved the hallucination *also* surfaced a real bug the AI would have missed entirely: `BY_LASTNAME_DESC("by lastName")` has the same display string as `BY_LASTNAME`, missing the `desc` suffix. Two findings — one AI failure and one production bug — from the same five-second human read.
 
 - **Inverted REST verb mapping.** `UserController` maps `PUT /user/v1/user` to user creation and `POST /user/v1/user` to paginated read. The AI's first instinct was to flag this as a mistake to fix; clarification was needed that it is part of the assessment surface and must not be changed.
+
+- **Default-choice failure: OWASP Dependency-Check in CI.** The AI proposed OWASP Dependency-Check Maven plugin as the in-CI vulnerability scanner without flagging that, since 2023, the NVD API enforces aggressive rate-limiting on unauthenticated traffic. On the very first run, with an empty cache, the job hung for **55 minutes** trying to download the NVD database, hit HTTP 429, and failed. The AI defaulted to the most familiar tool ("OWASP Dependency-Check is the standard for Maven") instead of evaluating whether it fit the constraints (no NVD key, no willingness to manage another secret, "minimal CI" mandate). Replaced with `actions/dependency-review-action@v4`, which uses the GitHub Advisory Database, requires no key, and runs in seconds. This is a recurring AI failure mode worth naming: **the tool optimises for the most-cited solution, not the best-fit solution**, and the cost of the wrong default landed entirely on the human running the failed pipeline.
 
 Further entries will be added as the implementation phase exposes more gaps.
