@@ -8,21 +8,28 @@ import it.sara.demo.service.user.criteria.CriteriaAddUser;
 import it.sara.demo.service.user.criteria.CriteriaGetUsers;
 import it.sara.demo.service.user.result.AddUserResult;
 import it.sara.demo.service.user.result.GetUsersResult;
-import it.sara.demo.service.util.StringUtil;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+/**
+ * Core business logic implementation for User operations.
+ * Acts as the middle layer between the web tier (validation already performed)
+ * and the database tier.
+ */
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class UserServiceImpl implements UserService {
 
-    @Autowired
-    private StringUtil stringUtil;
+    private final UserRepository userRepository;
 
-    @Autowired
-    private UserRepository userRepository;
-
+    /**
+     * Maps the validated criteria to a database entity and attempts to persist it.
+     * * @param criteria the validated data for the new user
+     * @return an empty AddUserResult if successful
+     * @throws GenericException if the persistence layer fails or an unexpected error occurs
+     */
     @Override
     public AddUserResult addUser(CriteriaAddUser criteria) throws GenericException {
 
@@ -33,19 +40,6 @@ public class UserServiceImpl implements UserService {
 
             returnValue = new AddUserResult();
 
-            if (stringUtil.isNullOrEmpty(criteria.getFirstName())) {
-                throw new GenericException(400, "First name is required");
-            }
-            if (stringUtil.isNullOrEmpty(criteria.getLastName())) {
-                throw new GenericException(400, "Last name is required");
-            }
-            if (stringUtil.isNullOrEmpty(criteria.getEmail())) {
-                throw new GenericException(400, "Email is required");
-            }
-            if (stringUtil.isNullOrEmpty(criteria.getPhoneNumber())) {
-                throw new GenericException(400, "Phone is required");
-            }
-
             user = new User();
             user.setFirstName(criteria.getFirstName());
             user.setLastName(criteria.getLastName());
@@ -55,7 +49,8 @@ public class UserServiceImpl implements UserService {
             if (!userRepository.save(user)) {
                 throw new GenericException(500, "Error saving user");
             }
-
+        } catch (GenericException ge) {
+            throw ge;
         } catch (Exception e) {
             if (log.isErrorEnabled()) {
                 log.error(e.getMessage(), e);
@@ -65,6 +60,11 @@ public class UserServiceImpl implements UserService {
         return returnValue;
     }
 
+    /**
+     * @param criteriaGetUsers
+     * @return
+     * @throws GenericException
+     */
     @Override
     public GetUsersResult getUsers(CriteriaGetUsers criteriaGetUsers) throws GenericException {
         return null;
