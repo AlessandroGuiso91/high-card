@@ -14,7 +14,7 @@ import lombok.Setter;
 @Setter
 public class AddUserRequest extends GenericRequest {
 
-    public static final String ITALIAN_PHONE_REGEX = "^(\\+39|0039|39)?3\\d{8,9}$";
+    public static final String ITALIAN_PHONE_REGEX = "^(\\+39|0039)?\\s?3\\d{9}$";
 
     public static final String NAME_REGEX = "^[a-zA-ZÀ-ÖØ-öø-ÿ\\s'\\-]+$";
 
