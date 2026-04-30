@@ -26,7 +26,7 @@ public class UserServiceImpl implements UserService {
 
     /**
      * Maps the validated criteria to a database entity and attempts to persist it.
-     * * @param criteria the validated data for the new user
+     * @param criteria the validated data for the new user
      * @return an empty AddUserResult if successful
      * @throws GenericException if the persistence layer fails or an unexpected error occurs
      */
