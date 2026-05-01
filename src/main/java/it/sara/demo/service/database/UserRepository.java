@@ -22,4 +22,31 @@ public class UserRepository {
     public List<User> getAll() {
         return FakeDatabase.TABLE_USER;
     }
+
+    /**
+     * Returns users whose first name, last name or email contains {@code query}
+     * (case-insensitive). When {@code query} is {@code null} or blank, returns all users.
+     */
+    public List<User> findMatching(String query) {
+
+        if (query == null || query.isBlank()) {
+            return getAll();
+        }
+
+        String q = query.toLowerCase();
+
+        return FakeDatabase.TABLE_USER.stream()
+                .filter(u -> matches(u, q))
+                .toList();
+    }
+
+    private boolean matches(User user, String lowercaseQuery) {
+        return containsIgnoreCase(user.getFirstName(), lowercaseQuery)
+                || containsIgnoreCase(user.getLastName(),  lowercaseQuery)
+                || containsIgnoreCase(user.getEmail(),     lowercaseQuery);
+    }
+
+    private boolean containsIgnoreCase(String field, String lowercaseQuery) {
+        return field != null && field.toLowerCase().contains(lowercaseQuery);
+    }
 }
