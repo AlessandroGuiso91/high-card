@@ -7,6 +7,10 @@ import lombok.Setter;
 
 import java.util.List;
 
+/**
+ * Web response for {@code POST /user/v1/user}: paginated user list plus the
+ * inherited {@code total/offset/limit} metadata.
+ */
 @Getter
 @Setter
 public class GetUsersResponse extends GenericPagedResponse {

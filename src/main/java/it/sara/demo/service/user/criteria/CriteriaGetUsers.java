@@ -4,6 +4,10 @@ import it.sara.demo.service.criteria.GenericCriteria;
 import lombok.Getter;
 import lombok.Setter;
 
+/**
+ * Service-layer criteria for user search: free-text query, offset/limit pagination,
+ * and an {@link OrderType} sort selector.
+ */
 @Getter
 @Setter
 public class CriteriaGetUsers extends GenericCriteria {
@@ -13,6 +17,7 @@ public class CriteriaGetUsers extends GenericCriteria {
     private int limit;
     private OrderType order;
 
+    /** Sort selector for the user search result. */
     @Getter
     public enum OrderType {
         BY_FIRSTNAME("by firstName"),

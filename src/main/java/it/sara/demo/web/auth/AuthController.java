@@ -1,5 +1,8 @@
 package it.sara.demo.web.auth;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirements;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import it.sara.demo.dto.StatusDTO;
 import it.sara.demo.security.JwtIssuer;
 import it.sara.demo.web.auth.request.LoginRequest;
@@ -25,6 +28,7 @@ import java.util.UUID;
  * Authentication failures bubble up as {@code AuthenticationException} and are
  * translated by {@code GlobalExceptionHandler} into a status-in-body 401 response.
  */
+@Tag(name = "Authentication", description = "Login and JWT issuance")
 @RestController
 @RequestMapping("/auth")
 @RequiredArgsConstructor
@@ -37,6 +41,11 @@ public class AuthController {
      * Authenticates the supplied credentials and issues a JWT carrying the
      * authenticated subject and its granted roles.
      */
+    @Operation(
+            summary = "Authenticate and obtain a JWT",
+            description = "Validates username/password and returns an RSA-signed JWT valid for 60 minutes."
+    )
+    @SecurityRequirements // public endpoint — disable the global bearerAuth requirement in Swagger UI
     @PostMapping("/login")
     public ResponseEntity<LoginResponse> login(@RequestBody @Valid LoginRequest request) {
         Authentication auth = authenticationManager.authenticate(

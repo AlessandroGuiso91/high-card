@@ -133,8 +133,31 @@ Plans are formalised when the design surface justifies it. Tasks 1 and 2 — inp
 
 These gaps are deliberate trade-offs, not oversights. For production, the controller slice tests would be added — the assessment scope does not justify the marginal cost.
 
-## Task 8 (planned, outline only)
-- **Task 8 — Javadoc + Swagger/OpenAPI.** Javadoc written contextually throughout. `springdoc-openapi-starter-webmvc-ui` to expose Swagger UI; controllers annotated with `@Operation` summaries.
+## Task 8 — Javadoc + Swagger/OpenAPI (done)
+
+**Goal.** Make the API self-documenting and externally explorable.
+
+**Approach.**
+- Javadoc has been written **contextually throughout the project** during tasks 1-7 (this was the methodology agreed in `pre-analysis.md` §2.3), so this task only adds the OpenAPI surface — there is no documentation backlog to flush at the end.
+- **`springdoc-openapi-starter-webmvc-ui` 2.6.0** added to `pom.xml`. Single dependency, generates the OpenAPI 3 spec from the existing controllers and DTOs without needing extra configuration.
+- **`OpenApiConfig`** declares the project metadata and a global `bearerAuth` security scheme, so every operation in Swagger UI exposes the "Authorize" button and JWTs are sent as `Authorization: Bearer ...`. The login endpoint opts out via `@SecurityRequirements` (empty) since it's the one public route.
+- **Controllers tagged and annotated**: `@Tag` at class level groups operations under "Authentication" and "Users"; `@Operation` on each method carries summary and description.
+- **Swagger paths added to the public allow-list** in `SecurityConfig`: `/swagger-ui.html`, `/swagger-ui/**`, `/v3/api-docs/**`. Without this, the docs would be 401-blocked.
+
+**Where to find it.** Once the app runs, Swagger UI is at `http://localhost:8080/swagger-ui.html`, raw JSON at `/v3/api-docs`.
+
+**Final Javadoc sweep.** While Javadoc was written contextually throughout, a final sweep added short class-level doc on the simpler DTOs/POJOs that had been left bare (request/response/criteria/result envelopes, `User`, `StatusDTO`, `UserDTO`, the `GenericException`, the `UserService` interface, `UserRepository`, `AddUserAssembler`, the application entry point). Kept proportionate (2-4 lines), no prose restating Lombok-generated accessors. Also removed the unused `StringUtil` (orphaned by task #1's switch to Bean Validation) — dead code is a doc liability, not a doc opportunity.
+
+**Springdoc version pin.** Initial choice was `2.6.0`, which fails at runtime against Spring Framework 6.2 (Boot 3.5) with `NoSuchMethodError: ControllerAdviceBean.<init>(Object)`. Bumped to `2.8.x` (the Boot 3.5 line). A subsequent attempt at `3.0.x` was abandoned because that line targets Boot 4 and pulls in autoconfigurations that conflict with Boot 3.5. Lesson: springdoc tracks Boot versions tightly — `2.8.x` for Boot 3.5, `3.x` for Boot 4.
+
+## Known transitive CVEs and dependency posture
+
+A scan with the Mend / IntelliJ "Code analysis" plugin reports a number of CVEs against transitive dependencies pulled in by Spring Boot 3.5.0 (`spring-web`, `spring-beans`, `tomcat-embed-core`, `logback-core`, `jackson-core`, etc.). These were reviewed and consciously **not patched**:
+
+- **Most entries are flagged "Insufficient Information"** with CVE numbers from CVE-2026 series — recently published vulnerabilities still under analysis, often without an official patch released upstream.
+- `./mvnw versions:display-dependency-updates` shows no patch upgrades available for the current direct dependencies. The only "newer" versions are **Spring Boot 4.1.0-RC1** (release candidate, major bump, not GA) and **springdoc 3.0.3** (which targets Boot 4 and is incompatible with Boot 3.5, as already learnt during task #8). Adopting either in an assessment is unjustified risk.
+- The CI guardrail (`actions/dependency-review-action` with `fail-on-severity: high`) does **not** block any of the affected PRs, meaning no CVE actually introduced by this branch is severity-`high`. The reported issues live in the BOM-pinned baseline that Spring Boot itself manages.
+- Stance: **stay on the latest stable Spring Boot** (3.5.0), let transitive patches arrive automatically with the next 3.5.x release, and rely on Dependabot to surface them. Not a blanket dismissal of CVEs — a deliberate choice to avoid swapping a noisy local scanner for unstable RC dependencies.
 
 ---
 
@@ -152,3 +175,4 @@ Recorded as each task closes.
 | Task 5 | Wrote the full JWT pipeline (RSA keypair loading, encoder/decoder beans, `JwtIssuer`, login controller, `@PreAuthorize`, status-in-body security handlers) and the IntelliJ HTTP Client examples | Confirmed the architecture decisions (self-contained issuer, RBAC + audience, demo keys committed); spotted the missing `private-key-location` property; flagged the `users.http` lacking the `Authorization` header (twice — I had to be told twice); proposed the `SecurityConfig` split deferred to task #6 |
 | Task 6 | Performed the `SecurityConfig` split, removed the `FakeDatabase` seeder, consolidated the bug retrospective in this plan | Confirmed the seed-removal decision over the alternative of "fixing the seeder"; merged and proceeded |
 | Task 7 | Wrote nine test classes covering every README task end-to-end (service, repository, assemblers, exception handler, JWT issuer/validator) | Reviewed and ran the suite; tightened scope when needed (e.g. dropped a test that would have asserted behaviour the code does not actually guarantee) |
+| Task 8 | Added springdoc, wrote `OpenApiConfig` with the bearer scheme, tagged controllers with `@Tag` / `@Operation`, opened Swagger paths in the security chain, closed `plan.md` | Confirmed the design choices (single global security scheme, login opted-out, Swagger paths public); ran the app to verify Swagger UI loads |

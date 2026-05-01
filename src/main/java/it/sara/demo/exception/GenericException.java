@@ -3,6 +3,10 @@ package it.sara.demo.exception;
 import it.sara.demo.dto.StatusDTO;
 import lombok.Getter;
 
+/**
+ * Project-wide checked exception. Carries a {@link StatusDTO} which is propagated
+ * verbatim to the client by {@link GlobalExceptionHandler} as a status-in-body 200.
+ */
 @Getter
 public class GenericException extends Exception {
 
