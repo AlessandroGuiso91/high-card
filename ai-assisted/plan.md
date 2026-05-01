@@ -92,15 +92,23 @@ Plans are formalised when the design surface justifies it. Tasks 1 and 2 — inp
 - BadCredentialsException from `AuthenticationManager` produced a localized Italian message (`"Credenziali non valide"`) due to Spring Security's default locale-aware MessageSource. Replaced with a fixed English string `"Invalid credentials"`, which doubles as a defense against username enumeration (uniform message regardless of failure cause).
 - `@PreAuthorize` failures returned HTTP 500 instead of 403 because `AccessDeniedException` is thrown synchronously inside the controller invocation and bypasses the security filter chain's `accessDeniedHandler` — a behaviour I missed initially. Added a dedicated `@ExceptionHandler(AccessDeniedException.class)` to the advice.
 - Wasted an iteration debugging the `JwtAuthenticationConverter` when the actual symptom (`"Full authentication is required to access this resource"`) was caused by `users.http` not carrying the `Authorization` header at all. The user pointed it out twice before I read the file. Logged here as a process failure (mine).
+- Initial `AuthenticationManager` bean used `DaoAuthenticationProvider#setUserDetailsService` / `setPasswordEncoder`, which are deprecated in Spring Security 6.4+. User replaced with the idiomatic `authConfig.getAuthenticationManager()` form via `AuthenticationConfiguration`, which auto-pulls the existing `UserDetailsService` + `PasswordEncoder` beans without depending on deprecated API.
 
-## Tasks 6-8 (planned, outline only)
-- **Task 6 — Bug fixing & code-quality cleanup.** Backlog of bugs and design improvements surfaced during earlier tasks but deliberately deferred here:
-    - `FakeDatabase` static seeder inserts data that violates the validation rules imposed at the web boundary (phone built as `"+39" + i` → `"+390"`; names contain digits via `"First name " + i`). Symptom of a broader architectural inconsistency: the seeder bypasses the boundary entirely. Decision in scope: either remove the seeder or make it produce conformant data.
-    - **Split `SecurityConfig` into focused classes** (e.g. `JwtConfig` for encoder/decoder + key loading, `UsersConfig` for the in-memory user store and `AuthenticationManager`, leaving `SecurityConfig` to own only the `SecurityFilterChain`). Single-responsibility refactor; functionally neutral. Surfaced when a missing `app.jwt.private-key-location` property triggered a misleading "jwtIssuer fails → securityConfig fails" stack and the user proposed the split as a structural fix. The actual fix was the missing property, but the refactor is still worthwhile.
-    - `AddUserAssembler.toCriteria` lastName copy-paste (`setLastName(getFirstName())`) — fixed during task 3.
-    - `OrderType.BY_LASTNAME_DESC` display string — fixed during task 3.
-    - `UserServiceImpl.addUser` exception swallowing — fixed during task 1.
-  Re-scan for further bugs as task 5 lands.
+## Task 6 — Bug fixing & code-quality cleanup (done)
+
+**Goal.** Close the backlog of bugs and design issues deliberately deferred from earlier tasks.
+
+**What changed in scope of this task.**
+- **Removed the `FakeDatabase` static seeder.** Producing data that violated the validation enforced at the web boundary (phone `"+39" + i`, names with digits via `"First name " + i`) was conceptually wrong: the seeder was bypassing the layer it was supposed to feed. Removed entirely; the in-memory store starts empty and is populated through `PUT /user/v1/user`. Rationale captured in a class-level Javadoc on `FakeDatabase`.
+- **Split `SecurityConfig` into three focused classes**: `JwtConfig` (encoder/decoder/converter + RSA key loading), `UsersConfig` (in-memory user store, password encoder, authentication manager), `SecurityConfig` (security filter chain + status-in-body writer). Single-responsibility, no behaviour change. Surfaced during task 5 when a missing property triggered a misleading "jwtIssuer fails → securityConfig fails" stack — the actual fix was the property, but the refactor was still worthwhile.
+
+**Already fixed in earlier tasks (recap for the report):**
+- `AddUserAssembler.toCriteria` lastName copy-paste — fixed during task 3.
+- `OrderType.BY_LASTNAME_DESC` display string — fixed during task 3.
+- `UserServiceImpl.addUser` exception swallowing — fixed during task 1.
+- `UserAssembler.toDTO` email truncation + missing `phoneNumber` mapping — both fixed during task 3.
+
+## Tasks 7-8 (planned, outline only)
 - **Task 7 — Unit tests.** JUnit 5; `MockMvc` for controllers; service tests against the in-memory repository. Coverage target: meaningful assertions on the eight tasks, not a percentage.
 - **Task 8 — Javadoc + Swagger/OpenAPI.** Javadoc written contextually throughout. `springdoc-openapi-starter-webmvc-ui` to expose Swagger UI; controllers annotated with `@Operation` summaries.
 
@@ -118,3 +126,4 @@ Recorded as each task closes.
 | Task 3 | Walked through filter / sort / paginate decomposition; drafted `findMatching`, `comparatorFor`, the bidirectional assembler and the smoke-test harness | Caught my misplaced suggestion to validate at the service layer; flagged the email truncation bug; spotted the `phoneNumber` omission during smoke test; isolated the `FakeDatabase` seeder issue and decided to keep it for task #6 |
 | Task 4 | Drafted the three-handler `GlobalExceptionHandler` and the rationale for the status-in-body pattern | Removed the dead try/catch from `UserServiceImpl.addUser`; ran the smoke tests; decided to leave the `HttpMessageNotReadableException` refinement out of scope and document it as a known limit |
 | Task 5 | Wrote the full JWT pipeline (RSA keypair loading, encoder/decoder beans, `JwtIssuer`, login controller, `@PreAuthorize`, status-in-body security handlers) and the IntelliJ HTTP Client examples | Confirmed the architecture decisions (self-contained issuer, RBAC + audience, demo keys committed); spotted the missing `private-key-location` property; flagged the `users.http` lacking the `Authorization` header (twice — I had to be told twice); proposed the `SecurityConfig` split deferred to task #6 |
+| Task 6 | Performed the `SecurityConfig` split, removed the `FakeDatabase` seeder, consolidated the bug retrospective in this plan | Confirmed the seed-removal decision over the alternative of "fixing the seeder"; merged and proceeded |

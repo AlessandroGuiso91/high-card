@@ -5,8 +5,8 @@
 # Tokens stay valid for ~60 minutes (see app.jwt.expiration-minutes).
 
 @host = http://localhost:8080
-@adminToken = paste-alice-token-here
-@userToken = paste-bob-token-here
+@adminToken = eyJhbGciOiJSUzI1NiJ9.eyJpc3MiOiJoaWdoLWNhcmQiLCJzdWIiOiJhbGljZSIsImF1ZCI6ImhpZ2gtY2FyZC1hcGkiLCJleHAiOjE3Nzc2NTk5NjIsImlhdCI6MTc3NzY1NjM2Miwicm9sZXMiOlsiUk9MRV9BRE1JTiIsIlJPTEVfVVNFUiJdfQ.ibTt_BGsbszR3FYoaWBBdTAjp2jfL6KGc4ZBam-GWKryf4pu2_ZQNl14zxgbQMS5y8tg0NuuW-E_7AZjSUNi-3z03gLZ64oAwUkfA32HHhZPobHLnmxllJ2IQ_qV9DIo8JYa-m_P53YkSCXj4sUbm_zdULCvpOzsB39gcMF-EiJfWdI8RIjHtyTKI7kuY7xce8fIsq741ZgAWR99AD6eZt4VyN0omf9dEdZLbvIve3_hLrIGp4Dj_DqVPmDy9KIP5LS-WqR5yw8Y1zDTWlaPJe9SkkIwmYyKaRXl5-c9ADqYh5Ehzu2uGue48V3Ores9BbSfgjzf5ZOneIxE4d_rpQ
+@userToken = eyJhbGciOiJSUzI1NiJ9.eyJpc3MiOiJoaWdoLWNhcmQiLCJzdWIiOiJib2IiLCJhdWQiOiJoaWdoLWNhcmQtYXBpIiwiZXhwIjoxNzc3NjYwMDE2LCJpYXQiOjE3Nzc2NTY0MTYsInJvbGVzIjpbIlJPTEVfVVNFUiJdfQ.X3NL7JO4c6FDi9qTfgI5Oo09OrdkvCuZ32g_n4RkGT-Is7SEarp21SQ5iKRliA4LRjhy34BhxJoQBUnbwvXwRIZJOkgsbDZYgbuciCpMy9xN6pLMb3V-BYYAO0e1dlBX2QXcmR62hWCEeNUjmVRiClj2e-4UuFBSVs4O2dNnaN3zOsaezF3SgKAJqzvVUbvCxCYMxdCDU_DS1lLVtLY4FzHfkR_mBcuypHogRy2JrjCiKU4efK0AxzXxugLz-oXOrBJ6I6Nq23BguXzSZdMSa1VbLtC5i3fd1CNj6Svd1DxH1pReJB2eT_nSxRWhLEssGrOXV-dk2mqrip5L0HfwpA
 
 ### -----------------------------------------------------------------------
 ### POSITIVE — Add a few users (PUT /user/v1/user) — requires ADMIN
@@ -15,7 +15,7 @@
 ### Add Mario Rossi
 PUT {{host}}/user/v1/user
 Content-Type: application/json
-Authorization: Bearer {{adminToken}}
+Authorization: Bearer {{userToken}}
 
 {
   "firstName": "Mario",
