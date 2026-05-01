@@ -10,5 +10,5 @@ public interface UserService {
 
     AddUserResult addUser(CriteriaAddUser addUserRequest) throws GenericException;
 
-    GetUsersResult getUsers(CriteriaGetUsers criteriaGetUsers) throws GenericException;
+    GetUsersResult getUsers(CriteriaGetUsers criteriaGetUsers);
 }
