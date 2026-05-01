@@ -1,0 +1,133 @@
+### High-Card — Auth endpoints
+# 1. Run "Login as alice" / "Login as bob" below to receive a JWT.
+# 2. Copy the token string from each response into the matching variable
+#    below (`@adminToken` for alice, `@userToken` for bob).
+# 3. Run the protected requests further down — they reference the variables.
+# Tokens stay valid for `app.jwt.expiration-minutes` (default 60).
+
+@host = http://localhost:8080
+@adminToken = paste-alice-token-here
+@userToken = paste-bob-token-here
+
+### -----------------------------------------------------------------------
+### POSITIVE — Login (POST /auth/login)
+### -----------------------------------------------------------------------
+
+### Login as alice (admin) — copy the response `token` into @adminToken above
+POST {{host}}/auth/login
+Content-Type: application/json
+
+{
+  "username": "alice",
+  "password": "admin123"
+}
+
+### Login as bob (user) — copy the response `token` into @userToken above
+POST {{host}}/auth/login
+Content-Type: application/json
+
+{
+  "username": "bob",
+  "password": "user123"
+}
+
+
+### -----------------------------------------------------------------------
+### NEGATIVE — Login failures
+### -----------------------------------------------------------------------
+
+### Wrong password — should return 200 + status.code 401
+POST {{host}}/auth/login
+Content-Type: application/json
+
+{
+  "username": "alice",
+  "password": "wrong"
+}
+
+### Unknown user — should return 200 + status.code 401
+POST {{host}}/auth/login
+Content-Type: application/json
+
+{
+  "username": "ghost",
+  "password": "whatever"
+}
+
+### Missing username — validation 400
+POST {{host}}/auth/login
+Content-Type: application/json
+
+{
+  "password": "admin123"
+}
+
+
+### -----------------------------------------------------------------------
+### Sample protected call — uses {{token}}
+### -----------------------------------------------------------------------
+
+### Search users with valid token
+POST {{host}}/user/v1/user
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{
+  "query": null,
+  "offset": 0,
+  "limit": 10,
+  "order": "BY_LASTNAME"
+}
+
+### Search users without token — should return 200 + status.code 401
+POST {{host}}/user/v1/user
+Content-Type: application/json
+
+{
+  "query": null,
+  "offset": 0,
+  "limit": 10,
+  "order": "BY_LASTNAME"
+}
+
+
+### -----------------------------------------------------------------------
+### Authorization (RBAC) — admin vs user
+### Run alice's and bob's logins first to populate adminToken / userToken.
+### -----------------------------------------------------------------------
+
+### Add user with admin token (alice) — should succeed (200 + status.code 200)
+PUT {{host}}/user/v1/user
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{
+  "firstName": "Authorized",
+  "lastName": "Adminsson",
+  "email": "auth.admin@example.com",
+  "phoneNumber": "+39 3331112222"
+}
+
+### Add user with USER-only token (bob) — should return 200 + status.code 403
+PUT {{host}}/user/v1/user
+Content-Type: application/json
+Authorization: Bearer {{userToken}}
+
+{
+  "firstName": "Should",
+  "lastName": "Fail",
+  "email": "should.fail@example.com",
+  "phoneNumber": "+39 3334445555"
+}
+
+### Search users with USER-only token (bob) — should succeed
+POST {{host}}/user/v1/user
+Content-Type: application/json
+Authorization: Bearer {{userToken}}
+
+{
+  "query": null,
+  "offset": 0,
+  "limit": 10,
+  "order": "BY_LASTNAME"
+}
