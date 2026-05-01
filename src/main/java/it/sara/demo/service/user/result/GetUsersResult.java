@@ -7,6 +7,10 @@ import lombok.Setter;
 
 import java.util.List;
 
+/**
+ * Service-layer result for user search: paginated user list plus the inherited
+ * {@code total/offset/limit} metadata.
+ */
 @Getter
 @Setter
 public class GetUsersResult extends GenericPagedResult {

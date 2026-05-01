@@ -4,6 +4,10 @@ import it.sara.demo.service.user.criteria.CriteriaAddUser;
 import it.sara.demo.web.user.request.AddUserRequest;
 import org.springframework.stereotype.Component;
 
+/**
+ * Translates the inbound {@link AddUserRequest} (web layer) into the
+ * {@link CriteriaAddUser} consumed by the service layer.
+ */
 @Component
 public class AddUserAssembler {
 

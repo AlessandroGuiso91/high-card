@@ -4,8 +4,13 @@ import it.sara.demo.service.database.model.User;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
-import java.util.Optional;
 
+/**
+ * Persistence abstraction over the in-memory {@code FakeDatabase}. Encapsulates
+ * the read/write API the service layer relies on; the static list is an
+ * implementation detail that can be replaced with a real datastore without
+ * touching callers.
+ */
 @Component
 public class UserRepository {
 
@@ -13,10 +18,6 @@ public class UserRepository {
         user.setGuid(java.util.UUID.randomUUID().toString());
         FakeDatabase.TABLE_USER.add(user);
         return true;
-    }
-
-    public Optional<User> getByGuid(String guid) {
-        return FakeDatabase.TABLE_USER.stream().filter(u -> u.getGuid().equals(guid)).findFirst();
     }
 
     public List<User> getAll() {
