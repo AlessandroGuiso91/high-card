@@ -34,19 +34,27 @@ Plans are formalised when the design surface justifies it. Tasks 1 and 2 — inp
 
 ---
 
-## Task 3 — Pagination, sorting, search (current)
+## Task 3 — Pagination, sorting, search (done)
 
-**Goal.** Complete `getUsers`: paginated response, sortable by `OrderType`, case-insensitive contains-filter on a search string (name or email).
+**Goal.** Complete `getUsers`: paginated response, sortable by `OrderType`, case-insensitive contains-filter on name or email.
 
 **Approach.**
-- Bean Validation on `CriteriaGetUsers`: `offset >= 0`, `limit` in `[1, 100]`. Reject invalid input early.
-- Filtering in `UserRepository`: stream the in-memory list, lowercase `contains` over `firstName + lastName + email`, sort by `OrderType`, then paginate (`skip` / `limit`).
-- Cross-layer translation through the existing assemblers — no `User` in the web layer, no `*Response` in the service.
-- Fix `OrderType.BY_LASTNAME_DESC` display string (`"by lastName"` → `"by lastName desc"`) — bug spotted during pre-analysis.
+- Validation at the **web DTO** (`GetUsersRequest`): `offset >= 0`, `limit` in `[1, 100]`, `query.length <= 50`. Triggered by `@Valid` on the controller.
+- **Repository filters, service orchestrates.** `UserRepository.findMatching(query)` returns the case-insensitive matches; `UserServiceImpl.getUsers` sorts (via a `comparatorFor(OrderType)` helper using `String.CASE_INSENSITIVE_ORDER`), paginates, and maps to `UserDTO`.
+- New **bidirectional `GetUsersAssembler`** in `web.assembler` for both `Request → Criteria` and `Result → Response`. One class with two methods because both directions exist for this flow, unlike `AddUser`.
+- `total` returned is the size of the filtered set **before** pagination, so the client can compute page boundaries.
+- A manual smoke-test harness (`http/users.http`) committed alongside the code, runnable via the IntelliJ HTTP Client.
 
-**Open decisions.**
-- Hard cap on `limit`? Proposed: **100**. Defends the in-memory store from accidental abuse without adding configuration.
-- Default `OrderType` when none is provided? Proposed: **`BY_LASTNAME`** (most common UX expectation).
+**Decisions taken.**
+- Hard cap on `limit` = **100**.
+- Default `OrderType` when null = **`BY_LASTNAME`**, applied in the service (business default, not at the validator).
+
+**What actually happened.**
+- I initially suggested validating `CriteriaGetUsers`; the user correctly applied validation to `GetUsersRequest` (the web DTO), in line with the boundary convention from tasks 1-2. I corrected the framing after the fact.
+- User-flagged bug in `UserAssembler.toDTO`: email truncated to the domain via `substring(lastIndexOf("@") + 1)`. Fixed in scope — without it, `getUsers` would have returned corrupted data and been untestable.
+- Smoke test exposed a related omission in the same method: `phoneNumber` was never mapped from `User` to `UserDTO`. Fixed in scope to keep the assembler internally consistent with the email fix.
+- `FakeDatabase` static seeder produces values that violate the validation rules (`"+39" + i`, `"First name " + i`); diagnosed but **deferred to task #6** as an architectural-consistency item, not a one-line typo.
+- `OrderType.BY_LASTNAME_DESC` display string fixed (`"by lastName"` → `"by lastName desc"`).
 
 ---
 
@@ -54,7 +62,12 @@ Plans are formalised when the design surface justifies it. Tasks 1 and 2 — inp
 
 - **Task 4 — Centralised exception handling.** `@RestControllerAdvice` translating `GenericException` and `MethodArgumentNotValidException` into a `StatusDTO` body, always HTTP 200. Removes the residual try/catch in `UserServiceImpl`.
 - **Task 5 — JWT security.** Spring Security + `oauth2-resource-server`. Validate policy, issuer, expiration. In-memory issuer keys for the assessment; no real IdP.
-- **Task 6 — Bug fixing.** `OrderType.BY_LASTNAME_DESC` display (rolled into task 3); `UserServiceImpl.addUser` exception swallowing (already fixed in task 1). Re-scan for further bugs as tasks 3-5 land.
+- **Task 6 — Bug fixing.** Backlog of bugs surfaced during earlier tasks but deliberately deferred here:
+    - `FakeDatabase` static seeder inserts data that violates the validation rules imposed at the web boundary (phone built as `"+39" + i` → `"+390"`; names contain digits via `"First name " + i`). Symptom of a broader architectural inconsistency: the seeder bypasses the boundary entirely. Decision in scope: either remove the seeder or make it produce conformant data.
+    - `AddUserAssembler.toCriteria` lastName copy-paste (`setLastName(getFirstName())`) — fixed during task 3.
+    - `OrderType.BY_LASTNAME_DESC` display string — fixed during task 3.
+    - `UserServiceImpl.addUser` exception swallowing — fixed during task 1.
+  Re-scan for further bugs as tasks 4-5 land.
 - **Task 7 — Unit tests.** JUnit 5; `MockMvc` for controllers; service tests against the in-memory repository. Coverage target: meaningful assertions on the eight tasks, not a percentage.
 - **Task 8 — Javadoc + Swagger/OpenAPI.** Javadoc written contextually throughout. `springdoc-openapi-starter-webmvc-ui` to expose Swagger UI; controllers annotated with `@Operation` summaries.
 
@@ -69,3 +82,4 @@ Recorded as each task closes.
 | Setup | Drafted CI workflow, Dependabot, pre-push hook, `pre-analysis.md` | Decided minimal-CI policy; vetoed SonarCloud and OWASP-in-CI after the failure; owned all git operations |
 | Task 1 | Proposed libraries, drafted regex and Javadoc | Caught the loose phone regex post-merge, spotted the broken `catch`, decided on constructor injection |
 | Task 2 | Drafted the name-regex and the defense-in-depth framing | Caught the misleading error message and the missing hyphen; decided to fold task 2 into the task 1 narrative |
+| Task 3 | Walked through filter / sort / paginate decomposition; drafted `findMatching`, `comparatorFor`, the bidirectional assembler and the smoke-test harness | Caught my misplaced suggestion to validate at the service layer; flagged the email truncation bug; spotted the `phoneNumber` omission during smoke test; isolated the `FakeDatabase` seeder issue and decided to keep it for task #6 |

@@ -1,0 +1,220 @@
+### High-Card — User endpoints
+# Run individual requests with the green ▶ in IntelliJ, or all in sequence
+# from the top of the file. Base URL assumes `./mvnw spring-boot:run` on default port.
+
+@host = http://localhost:8080
+
+
+### -----------------------------------------------------------------------
+### POSITIVE — Add a few users (PUT /user/v1/user)
+### -----------------------------------------------------------------------
+
+### Add Mario Rossi
+PUT {{host}}/user/v1/user
+Content-Type: application/json
+
+{
+  "firstName": "Mario",
+  "lastName": "Rossi",
+  "email": "mario.rossi@example.com",
+  "phoneNumber": "+39 3331234567"
+}
+
+### Add Anna-Maria Bianchi (compound first name)
+PUT {{host}}/user/v1/user
+Content-Type: application/json
+
+{
+  "firstName": "Anna-Maria",
+  "lastName": "Bianchi",
+  "email": "anna.bianchi@example.com",
+  "phoneNumber": "3339876543"
+}
+
+### Add Luca Verdi (accented unrelated, plain ASCII)
+PUT {{host}}/user/v1/user
+Content-Type: application/json
+
+{
+  "firstName": "Luca",
+  "lastName": "Verdi",
+  "email": "luca.verdi@example.com",
+  "phoneNumber": "0039 3501112233"
+}
+
+### Add Niccolò D'Angelo (apostrophe + accent)
+PUT {{host}}/user/v1/user
+Content-Type: application/json
+
+{
+  "firstName": "Niccolò",
+  "lastName": "D'Angelo",
+  "email": "niccolo.dangelo@example.com",
+  "phoneNumber": "3387654321"
+}
+
+
+### -----------------------------------------------------------------------
+### NEGATIVE — Validation failures on Add (PUT)
+### -----------------------------------------------------------------------
+
+### Invalid phone (too short)
+PUT {{host}}/user/v1/user
+Content-Type: application/json
+
+{
+  "firstName": "Test",
+  "lastName": "Phone",
+  "email": "test@example.com",
+  "phoneNumber": "12345"
+}
+
+### Invalid email
+PUT {{host}}/user/v1/user
+Content-Type: application/json
+
+{
+  "firstName": "Test",
+  "lastName": "Email",
+  "email": "not-an-email",
+  "phoneNumber": "3331234567"
+}
+
+### Disallowed character in name (digit)
+PUT {{host}}/user/v1/user
+Content-Type: application/json
+
+{
+  "firstName": "Mario1",
+  "lastName": "Rossi",
+  "email": "mario@example.com",
+  "phoneNumber": "3331234567"
+}
+
+### Missing required field (email)
+PUT {{host}}/user/v1/user
+Content-Type: application/json
+
+{
+  "firstName": "Mario",
+  "lastName": "Rossi",
+  "phoneNumber": "3331234567"
+}
+
+
+### -----------------------------------------------------------------------
+### POSITIVE — Search & paginate (POST /user/v1/user)
+### -----------------------------------------------------------------------
+
+### List all (no filter), sort by lastName
+POST {{host}}/user/v1/user
+Content-Type: application/json
+
+{
+  "query": null,
+  "offset": 0,
+  "limit": 10,
+  "order": "BY_LASTNAME"
+}
+
+### Filter by partial last name, sort by firstName desc
+POST {{host}}/user/v1/user
+Content-Type: application/json
+
+{
+  "query": "ross",
+  "offset": 0,
+  "limit": 10,
+  "order": "BY_FIRSTNAME_DESC"
+}
+
+### Filter by email substring
+POST {{host}}/user/v1/user
+Content-Type: application/json
+
+{
+  "query": "example.com",
+  "offset": 0,
+  "limit": 10,
+  "order": "BY_LASTNAME"
+}
+
+### Pagination — second page (offset > 0)
+POST {{host}}/user/v1/user
+Content-Type: application/json
+
+{
+  "query": null,
+  "offset": 2,
+  "limit": 2,
+  "order": "BY_LASTNAME"
+}
+
+### No order specified — should default to BY_LASTNAME
+POST {{host}}/user/v1/user
+Content-Type: application/json
+
+{
+  "query": null,
+  "offset": 0,
+  "limit": 10
+}
+
+### Offset beyond total — should return empty users with correct total
+POST {{host}}/user/v1/user
+Content-Type: application/json
+
+{
+  "query": null,
+  "offset": 9999,
+  "limit": 10,
+  "order": "BY_LASTNAME"
+}
+
+
+### -----------------------------------------------------------------------
+### NEGATIVE — Validation failures on Search (POST)
+### -----------------------------------------------------------------------
+
+### Limit too high (> 100)
+POST {{host}}/user/v1/user
+Content-Type: application/json
+
+{
+  "query": null,
+  "offset": 0,
+  "limit": 999,
+  "order": "BY_LASTNAME"
+}
+
+### Negative offset
+POST {{host}}/user/v1/user
+Content-Type: application/json
+
+{
+  "query": null,
+  "offset": -1,
+  "limit": 10,
+  "order": "BY_LASTNAME"
+}
+
+### Missing limit (mandatory)
+POST {{host}}/user/v1/user
+Content-Type: application/json
+
+{
+  "query": null,
+  "offset": 0,
+  "order": "BY_LASTNAME"
+}
+
+### Query too long (> 50 chars)
+POST {{host}}/user/v1/user
+Content-Type: application/json
+
+{
+  "query": "this-is-a-very-long-query-string-that-clearly-exceeds-fifty-characters-by-design",
+  "offset": 0,
+  "limit": 10,
+  "order": "BY_LASTNAME"
+}

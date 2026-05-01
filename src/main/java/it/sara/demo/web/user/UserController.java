@@ -1,8 +1,11 @@
 package it.sara.demo.web.user;
 
 import it.sara.demo.exception.GenericException;
+import it.sara.demo.service.assembler.GetUsersAssembler;
 import it.sara.demo.service.user.UserService;
 import it.sara.demo.service.user.criteria.CriteriaAddUser;
+import it.sara.demo.service.user.criteria.CriteriaGetUsers;
+import it.sara.demo.service.user.result.GetUsersResult;
 import it.sara.demo.web.assembler.AddUserAssembler;
 import it.sara.demo.web.response.GenericResponse;
 import it.sara.demo.web.user.request.AddUserRequest;
@@ -24,8 +27,8 @@ import org.springframework.web.bind.annotation.*;
 public class UserController {
 
     private final UserService userService;
-
     private final AddUserAssembler addUserAssembler;
+    private final GetUsersAssembler getUsersAssembler;
 
     /**
      * Creates a new user. The request payload is automatically validated by Spring before processing.
@@ -49,7 +52,9 @@ public class UserController {
      * @throws GenericException if an error occurs during the retrieval process
      */
     @RequestMapping(value = {"/v1/user"}, method = RequestMethod.POST)
-    public ResponseEntity<GetUsersResponse> getUsers(@RequestBody GetUsersRequest request) throws GenericException {
-        return ResponseEntity.ok().build();
+    public ResponseEntity<GetUsersResponse> getUsers(@RequestBody @Valid GetUsersRequest request) throws GenericException {
+        CriteriaGetUsers criteria = getUsersAssembler.toCriteria(request);
+        GetUsersResult result = userService.getUsers(criteria);
+        return ResponseEntity.ok(getUsersAssembler.toResponse(result));
     }
 }
