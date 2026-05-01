@@ -1,17 +1,21 @@
 ### High-Card — User endpoints
-# Run individual requests with the green ▶ in IntelliJ, or all in sequence
-# from the top of the file. Base URL assumes `./mvnw spring-boot:run` on default port.
+# All endpoints below require a JWT in the Authorization header.
+# 1. Run a login from auth.http and copy the response `token`.
+# 2. Paste the alice token in @adminToken below, the bob token in @userToken.
+# Tokens stay valid for ~60 minutes (see app.jwt.expiration-minutes).
 
 @host = http://localhost:8080
-
+@adminToken = paste-alice-token-here
+@userToken = paste-bob-token-here
 
 ### -----------------------------------------------------------------------
-### POSITIVE — Add a few users (PUT /user/v1/user)
+### POSITIVE — Add a few users (PUT /user/v1/user) — requires ADMIN
 ### -----------------------------------------------------------------------
 
 ### Add Mario Rossi
 PUT {{host}}/user/v1/user
 Content-Type: application/json
+Authorization: Bearer {{adminToken}}
 
 {
   "firstName": "Mario",
@@ -23,6 +27,7 @@ Content-Type: application/json
 ### Add Anna-Maria Bianchi (compound first name)
 PUT {{host}}/user/v1/user
 Content-Type: application/json
+Authorization: Bearer {{adminToken}}
 
 {
   "firstName": "Anna-Maria",
@@ -34,6 +39,7 @@ Content-Type: application/json
 ### Add Luca Verdi (accented unrelated, plain ASCII)
 PUT {{host}}/user/v1/user
 Content-Type: application/json
+Authorization: Bearer {{adminToken}}
 
 {
   "firstName": "Luca",
@@ -45,6 +51,7 @@ Content-Type: application/json
 ### Add Niccolò D'Angelo (apostrophe + accent)
 PUT {{host}}/user/v1/user
 Content-Type: application/json
+Authorization: Bearer {{adminToken}}
 
 {
   "firstName": "Niccolò",
@@ -55,12 +62,13 @@ Content-Type: application/json
 
 
 ### -----------------------------------------------------------------------
-### NEGATIVE — Validation failures on Add (PUT)
+### NEGATIVE — Validation failures on Add (PUT) — still ADMIN-authenticated
 ### -----------------------------------------------------------------------
 
 ### Invalid phone (too short)
 PUT {{host}}/user/v1/user
 Content-Type: application/json
+Authorization: Bearer {{adminToken}}
 
 {
   "firstName": "Test",
@@ -72,6 +80,7 @@ Content-Type: application/json
 ### Invalid email
 PUT {{host}}/user/v1/user
 Content-Type: application/json
+Authorization: Bearer {{adminToken}}
 
 {
   "firstName": "Test",
@@ -83,6 +92,7 @@ Content-Type: application/json
 ### Disallowed character in name (digit)
 PUT {{host}}/user/v1/user
 Content-Type: application/json
+Authorization: Bearer {{adminToken}}
 
 {
   "firstName": "Mario1",
@@ -94,6 +104,7 @@ Content-Type: application/json
 ### Missing required field (email)
 PUT {{host}}/user/v1/user
 Content-Type: application/json
+Authorization: Bearer {{adminToken}}
 
 {
   "firstName": "Mario",
@@ -103,12 +114,13 @@ Content-Type: application/json
 
 
 ### -----------------------------------------------------------------------
-### POSITIVE — Search & paginate (POST /user/v1/user)
+### POSITIVE — Search & paginate (POST /user/v1/user) — USER or ADMIN
 ### -----------------------------------------------------------------------
 
 ### List all (no filter), sort by lastName
 POST {{host}}/user/v1/user
 Content-Type: application/json
+Authorization: Bearer {{adminToken}}
 
 {
   "query": null,
@@ -120,6 +132,7 @@ Content-Type: application/json
 ### Filter by partial last name, sort by firstName desc
 POST {{host}}/user/v1/user
 Content-Type: application/json
+Authorization: Bearer {{adminToken}}
 
 {
   "query": "ross",
@@ -131,6 +144,7 @@ Content-Type: application/json
 ### Filter by email substring
 POST {{host}}/user/v1/user
 Content-Type: application/json
+Authorization: Bearer {{adminToken}}
 
 {
   "query": "example.com",
@@ -142,6 +156,7 @@ Content-Type: application/json
 ### Pagination — second page (offset > 0)
 POST {{host}}/user/v1/user
 Content-Type: application/json
+Authorization: Bearer {{adminToken}}
 
 {
   "query": null,
@@ -153,6 +168,7 @@ Content-Type: application/json
 ### No order specified — should default to BY_LASTNAME
 POST {{host}}/user/v1/user
 Content-Type: application/json
+Authorization: Bearer {{adminToken}}
 
 {
   "query": null,
@@ -163,6 +179,7 @@ Content-Type: application/json
 ### Offset beyond total — should return empty users with correct total
 POST {{host}}/user/v1/user
 Content-Type: application/json
+Authorization: Bearer {{adminToken}}
 
 {
   "query": null,
@@ -179,6 +196,7 @@ Content-Type: application/json
 ### Limit too high (> 100)
 POST {{host}}/user/v1/user
 Content-Type: application/json
+Authorization: Bearer {{adminToken}}
 
 {
   "query": null,
@@ -190,6 +208,7 @@ Content-Type: application/json
 ### Negative offset
 POST {{host}}/user/v1/user
 Content-Type: application/json
+Authorization: Bearer {{adminToken}}
 
 {
   "query": null,
@@ -201,6 +220,7 @@ Content-Type: application/json
 ### Missing limit (mandatory)
 POST {{host}}/user/v1/user
 Content-Type: application/json
+Authorization: Bearer {{adminToken}}
 
 {
   "query": null,
@@ -211,6 +231,7 @@ Content-Type: application/json
 ### Query too long (> 50 chars)
 POST {{host}}/user/v1/user
 Content-Type: application/json
+Authorization: Bearer {{adminToken}}
 
 {
   "query": "this-is-a-very-long-query-string-that-clearly-exceeds-fifty-characters-by-design",

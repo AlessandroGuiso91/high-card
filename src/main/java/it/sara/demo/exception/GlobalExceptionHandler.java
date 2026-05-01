@@ -4,6 +4,8 @@ import it.sara.demo.dto.StatusDTO;
 import it.sara.demo.web.response.GenericResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -44,6 +46,31 @@ public class GlobalExceptionHandler {
                 .collect(Collectors.joining("; "));
         log.warn("Validation failure: {}", message);
         return ResponseEntity.ok(buildBody(400, message));
+    }
+
+    /**
+     * Handles credential-level authentication failures thrown by the
+     * {@code AuthenticationManager} (e.g. {@code BadCredentialsException} during
+     * {@code POST /auth/login}). Reports a 401 in the status-in-body envelope.
+     */
+    @ExceptionHandler(AuthenticationException.class)
+    public ResponseEntity<GenericResponse> handleAuthFailure(AuthenticationException ex) {
+        // Real cause logged server-side; client receives a uniform message to avoid
+        // leaking which input was wrong (username enumeration) and to stay locale-stable.
+        log.warn("Authentication failure: {}", ex.getMessage());
+        return ResponseEntity.ok(buildBody(401, "Invalid credentials"));
+    }
+
+    /**
+     * Handles authorization failures from {@code @PreAuthorize}. Method-security
+     * exceptions are thrown synchronously inside the controller invocation, so
+     * they bypass the security filter chain's {@code accessDeniedHandler} and
+     * reach this advice instead. Reported as 403 in the status-in-body envelope.
+     */
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<GenericResponse> handleAccessDenied(AccessDeniedException ex) {
+        log.warn("Access denied: {}", ex.getMessage());
+        return ResponseEntity.ok(buildBody(403, "Access denied"));
     }
 
     /**
