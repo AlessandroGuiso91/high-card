@@ -53,11 +53,10 @@ public class UserController {
      *
      * @param request the payload containing pagination and filtering criteria
      * @return a response containing the matched users
-     * @throws GenericException if an error occurs during the retrieval process
      */
     @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
     @RequestMapping(value = {"/v1/user"}, method = RequestMethod.POST)
-    public ResponseEntity<GetUsersResponse> getUsers(@RequestBody @Valid GetUsersRequest request) throws GenericException {
+    public ResponseEntity<GetUsersResponse> getUsers(@RequestBody @Valid GetUsersRequest request) {
         CriteriaGetUsers criteria = getUsersAssembler.toCriteria(request);
         GetUsersResult result = userService.getUsers(criteria);
         return ResponseEntity.ok(getUsersAssembler.toResponse(result));

@@ -108,8 +108,32 @@ Plans are formalised when the design surface justifies it. Tasks 1 and 2 — inp
 - `UserServiceImpl.addUser` exception swallowing — fixed during task 1.
 - `UserAssembler.toDTO` email truncation + missing `phoneNumber` mapping — both fixed during task 3.
 
-## Tasks 7-8 (planned, outline only)
-- **Task 7 — Unit tests.** JUnit 5; `MockMvc` for controllers; service tests against the in-memory repository. Coverage target: meaningful assertions on the eight tasks, not a percentage.
+## Task 7 — Unit tests (done)
+
+**Goal.** Lock in the behaviour established across tasks 1-6 so that future regressions are caught by the build, not by the next reviewer.
+
+**Approach.**
+- **JUnit 5 + Mockito + AssertJ**, all transitively available via `spring-boot-starter-test`. No new dependencies.
+- **Pure unit tests, no `@SpringBootTest`** outside the existing context-loads check. Each class is exercised in isolation with mocks where the dependency is interesting (e.g. `UserAssembler` mocked in `UserServiceImplTest` to keep filter/sort/paginate logic separable from entity-to-DTO mapping).
+- **Coverage by intent, not by percentage.** Every README task has at least one regression test that would fail if the corresponding fix were reverted: order display strings (task 3), email truncation + phone mapping (task 3), lastName copy-paste (task 3), three exception handlers + auth + access-denied (task 4), audience validator + JWT roundtrip (task 5).
+- **`JwtIssuerTest` uses a real RSA keypair** generated in `@BeforeEach` instead of mocking the encoder. The encoder is sufficiently complex that mocking it would test the mock, not the issuer.
+
+**What's covered.**
+- `UserServiceImplTest` — `addUser` (success/repository-fail), `getUsers` (sort asc/desc, default order on null, pagination after sort, offset beyond total, total reflects filtered set).
+- `UserRepositoryTest` — `findMatching` (null/blank query, case-insensitive matches across firstName/lastName/email, no-match, save assigns guid).
+- `OrderTypeTest` — regression on `BY_LASTNAME_DESC` display string.
+- `UserAssemblerTest` / `AddUserAssemblerTest` — regression on the email/phoneNumber/lastName bugs.
+- `GetUsersAssemblerTest` — round-trip of pagination metadata across both directions.
+- `GlobalExceptionHandlerTest` — all five exception flavours produce HTTP 200 + correct `status.code`.
+- `JwtAudienceValidatorTest` / `JwtIssuerTest` — JWT signing and audience validation.
+
+**What's deliberately NOT covered (and why).**
+- **`@WebMvcTest` / `MockMvc` for controllers.** Both controllers (`UserController`, `AuthController`) are thin pass-throughs (assembler → service → response); the meaningful logic lives in the layers below, all unit-tested. Adding a Spring-test slice to assert routing and `@PreAuthorize` would cost a non-trivial security-context setup for very little additional signal. The end-to-end behaviour of the HTTP boundary is exercised manually via `http/users.http` and `http/auth.http`.
+- **End-to-end "login → call protected endpoint" flow.** Same rationale: the constituent parts are unit-tested (`JwtIssuer` produces a valid token, `JwtAudienceValidator` accepts it, `GlobalExceptionHandler` translates failures), and the smoke harness puts them all together against the running app. A wired `@SpringBootTest` would duplicate that without catching meaningfully more.
+
+These gaps are deliberate trade-offs, not oversights. For production, the controller slice tests would be added — the assessment scope does not justify the marginal cost.
+
+## Task 8 (planned, outline only)
 - **Task 8 — Javadoc + Swagger/OpenAPI.** Javadoc written contextually throughout. `springdoc-openapi-starter-webmvc-ui` to expose Swagger UI; controllers annotated with `@Operation` summaries.
 
 ---
@@ -127,3 +151,4 @@ Recorded as each task closes.
 | Task 4 | Drafted the three-handler `GlobalExceptionHandler` and the rationale for the status-in-body pattern | Removed the dead try/catch from `UserServiceImpl.addUser`; ran the smoke tests; decided to leave the `HttpMessageNotReadableException` refinement out of scope and document it as a known limit |
 | Task 5 | Wrote the full JWT pipeline (RSA keypair loading, encoder/decoder beans, `JwtIssuer`, login controller, `@PreAuthorize`, status-in-body security handlers) and the IntelliJ HTTP Client examples | Confirmed the architecture decisions (self-contained issuer, RBAC + audience, demo keys committed); spotted the missing `private-key-location` property; flagged the `users.http` lacking the `Authorization` header (twice — I had to be told twice); proposed the `SecurityConfig` split deferred to task #6 |
 | Task 6 | Performed the `SecurityConfig` split, removed the `FakeDatabase` seeder, consolidated the bug retrospective in this plan | Confirmed the seed-removal decision over the alternative of "fixing the seeder"; merged and proceeded |
+| Task 7 | Wrote nine test classes covering every README task end-to-end (service, repository, assemblers, exception handler, JWT issuer/validator) | Reviewed and ran the suite; tightened scope when needed (e.g. dropped a test that would have asserted behaviour the code does not actually guarantee) |
