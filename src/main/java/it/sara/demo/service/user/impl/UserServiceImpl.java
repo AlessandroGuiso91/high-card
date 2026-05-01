@@ -40,31 +40,18 @@ public class UserServiceImpl implements UserService {
     @Override
     public AddUserResult addUser(CriteriaAddUser criteria) throws GenericException {
 
-        AddUserResult returnValue;
-        User user;
+        User user = new User();
 
-        try {
+        user.setFirstName(criteria.getFirstName());
+        user.setLastName(criteria.getLastName());
+        user.setEmail(criteria.getEmail());
+        user.setPhoneNumber(criteria.getPhoneNumber());
 
-            returnValue = new AddUserResult();
-
-            user = new User();
-            user.setFirstName(criteria.getFirstName());
-            user.setLastName(criteria.getLastName());
-            user.setEmail(criteria.getEmail());
-            user.setPhoneNumber(criteria.getPhoneNumber());
-
-            if (!userRepository.save(user)) {
-                throw new GenericException(500, "Error saving user");
-            }
-        } catch (GenericException ge) {
-            throw ge;
-        } catch (Exception e) {
-            if (log.isErrorEnabled()) {
-                log.error(e.getMessage(), e);
-            }
-            throw new GenericException(GenericException.GENERIC_ERROR);
+        if (!userRepository.save(user)) {
+            throw new GenericException(500, "Error saving user");
         }
-        return returnValue;
+
+        return new AddUserResult();
     }
 
     /**

@@ -58,9 +58,23 @@ Plans are formalised when the design surface justifies it. Tasks 1 and 2 — inp
 
 ---
 
-## Tasks 4-8 (planned, outline only)
+## Task 4 — Centralised exception handling (done)
 
-- **Task 4 — Centralised exception handling.** `@RestControllerAdvice` translating `GenericException` and `MethodArgumentNotValidException` into a `StatusDTO` body, always HTTP 200. Removes the residual try/catch in `UserServiceImpl`.
+**Goal.** All errors return HTTP 200 with the project's `StatusDTO` payload (code, message, traceId) in the body, per the README's status-in-body convention. Replace the per-controller try/catch.
+
+**Approach.**
+- Single `@RestControllerAdvice` (`GlobalExceptionHandler`) with three handlers, picked by Spring on type-hierarchy specificity:
+  - `GenericException` → propagates the carried `StatusDTO` unchanged. Logged at `WARN` (expected business error).
+  - `MethodArgumentNotValidException` → aggregates `BindingResult` field errors into one message (`"field: msg; field: msg"`), code 400, fresh traceId.
+  - `Exception` (catch-all) → `code 500`, neutral `"Generic error"` message, full stack trace logged server-side. No internal detail leaked to the client.
+- Removed the residual try/catch from `UserServiceImpl.addUser`: the broad catch + `GENERIC_ERROR` rethrow is now dead weight, since the advice handles the same case at the boundary.
+
+**What actually happened.**
+- All three rami verified via `http/users.http`: bad email/phone → `200` + `status.code: 400`; malformed JSON → `200` + `status.code: 500` (caught by the catch-all path through `HttpMessageNotReadableException`). Test of the `GenericException` handler deferred to task #7 (unit test) — it cannot be triggered naturally because `FakeDatabase.save()` always returns `true`.
+- **Refinement not implemented (intentionally).** The catch-all today reports malformed JSON as `500`, while semantically it is a client error (`400`). A fourth handler on `HttpMessageNotReadableException` would split the case cleanly. Left out because the README asked for three handler categories and the spec is satisfied as-is; flagged here as a known-limit / possible improvement.
+
+## Tasks 5-8 (planned, outline only)
+
 - **Task 5 — JWT security.** Spring Security + `oauth2-resource-server`. Validate policy, issuer, expiration. In-memory issuer keys for the assessment; no real IdP.
 - **Task 6 — Bug fixing.** Backlog of bugs surfaced during earlier tasks but deliberately deferred here:
     - `FakeDatabase` static seeder inserts data that violates the validation rules imposed at the web boundary (phone built as `"+39" + i` → `"+390"`; names contain digits via `"First name " + i`). Symptom of a broader architectural inconsistency: the seeder bypasses the boundary entirely. Decision in scope: either remove the seeder or make it produce conformant data.
@@ -83,3 +97,4 @@ Recorded as each task closes.
 | Task 1 | Proposed libraries, drafted regex and Javadoc | Caught the loose phone regex post-merge, spotted the broken `catch`, decided on constructor injection |
 | Task 2 | Drafted the name-regex and the defense-in-depth framing | Caught the misleading error message and the missing hyphen; decided to fold task 2 into the task 1 narrative |
 | Task 3 | Walked through filter / sort / paginate decomposition; drafted `findMatching`, `comparatorFor`, the bidirectional assembler and the smoke-test harness | Caught my misplaced suggestion to validate at the service layer; flagged the email truncation bug; spotted the `phoneNumber` omission during smoke test; isolated the `FakeDatabase` seeder issue and decided to keep it for task #6 |
+| Task 4 | Drafted the three-handler `GlobalExceptionHandler` and the rationale for the status-in-body pattern | Removed the dead try/catch from `UserServiceImpl.addUser`; ran the smoke tests; decided to leave the `HttpMessageNotReadableException` refinement out of scope and document it as a known limit |
